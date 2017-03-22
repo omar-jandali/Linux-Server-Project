@@ -4,11 +4,11 @@ List of conguration changes made, and shell commands used to make the changes.
 
 ### Server Details
 
-IP address: `52.33.95.129`
+IP address: `34.205.131.70`
 
 SSH port: `2200`
 
-URL: `http://52.33.95.129`
+URL: `http://34.205.131.70`
 
 ### Change timezone to UTC
 
@@ -150,7 +150,7 @@ chown grader:grader /home/grader/.ssh/authorized_keys
 chmod 644 /home/grader/.ssh/authorized_keys
 ```
 
-Can now login as the grader user using the command: `ssh -i [privateKey] grader@52.33.95.129`
+Can now login as the grader user using the command: `ssh -i [privateKey] grader@34.205.131.70`
 
 ### Disable root login
 
