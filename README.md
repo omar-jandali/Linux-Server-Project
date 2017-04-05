@@ -1,116 +1,99 @@
-# Udacity Linux Server Configuration Project
 
-List of conguration changes made, and shell commands used to make the changes.
+Linux server steps:
 
-### Server Details
+IP address: 34.205.90.116
+Port: 2200
+URL: http://34.205.90.116
 
-IP address: `34.205.131.70`
+login to server with the following command
+- ssh ubuntu@34.205.90.116 -i  LightsailDefaultPrivateKey.pem
 
-SSH port: `2200`
+update all the packages for the server
+- sudo apt-get update
+- sudo apt-get upgrade
 
-URL: `http://34.205.131.70`
+update the timezone data
+- sudo dpkg-reconfigure tzdata
+- sudo apt-get install ntp
 
-### Change timezone to UTC
+install finger package 
+- sudo apt-get finger
 
-`timedatectl set-timezone UTC`
+configure the sshd-config file
+- sudo nano /etc/ssh/sshd_config
+* changed port from 22 to 2200
+* changed PermitRootLogin from prohibited-passwork to no
+- sudo service ssh restart
+* went to the network tab of the AWS server and added a new network 2200 to the available ports
 
-### Update all currently installed packages
+Configure the FIrewall
+- sudo ufw status (make sure it is disabled)
+- sudo ufw default deny incoming
+- sudo ufw default allow outgoing
+- sudo ufw allow 2200/tcp
+- sudo ufw allow 80/tcp
+- sudo ufw allow 123/udp
+- sudo ufw enable 
+- sudo ufw status (make sure all the correct ports are open)
 
-```
-apt-get update
-apt-get upgrade
-```
+Downloaded a firewall monitor
+- sudo apt-get install fail2ban
+- sudo apt-get install sendmail
+- sudo cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local
+- sudo nano /etc/fail2ban/jail.local
+* set the destemail field to admin users email address
 
-### Change the SSH port from 22 to 2200
+Setup automatic packeges updated
+- sudo apt-get install unattended-upgrades
+- sudo dpkg-reconfigure --priority=low unattended-upgrades
 
-`nano /etc/ssh/sshd_config`
-Change `Port 22` to `Port 2200` save and exit
+Install apache and mod_wdgi
+- sudo apt-get install apache2
+- sudo apt-get install lobapache2-mod-wsgi python-dev
+- sudo a2enmod wsgi
+- sudo service apache2 start
+* check that apache is running my going to the ip address in your address
 
-### Configure the Uncomplicated Firewall
-
-```
-ufw allow 2200/tcp
-ufw allow 80/tcp
-ufw allow 123/udp
-ufw enable
-```
-
-### Install Apache to serve a Python mod_wsgi application
-
-```
-apt-get install apache2
-apt-get install libapache2-mod-wsgi
-```
-
-### Install and configure PostgreSQL
-
-$ sudo apt-get install postgresql
-$ sudo adduser catalog
-$ sudo -i -u postgres
-postgres:~$ psql
-postgres=# CREATE DATABASE catalog;
-postgres=# \q
-postgres:~$ exit
-grader:~$ sudo adduser catalog
-
-grader:$ sudo -i -u postgres postgres:$ createuser --interactive -P Enter name of role to add: catalog Enter password for new role: Enter it again: Shall the new role be a superuser? (y/n) n Shall the new role be allowed to create database? (y/n) n Shall the new role be allowed to create more new roles? (y/n) n
-
-### Install git, clone and setup the Catalog App project
-
-```
-apt-get install git
-cd /var/www
-mkdir catalog
-git clone https://github.com/vk9141/udacity-item-catalog.git
-mv ./udacity-item-catalog ./catalog
-cd catalog
-mv project.py catalog.py
-```
-
-Edit `database_setup.py`, `catalog.py` and `database_initial_data.py` and change `engine = create_engine('sqlite:///categoryrecipeswithusers.db')` to `engine = create_engine('postgresql://catalog:password@localhost/catalog')`
-
-### Install Flask, SQLAlchemy, etc
-
-```
-apt-get install python-psycopg2 python-flask
-apt-get install python-sqlalchemy python-pip
-pip install oauth2client
-pip install requests
-pip install httplib2
-```
-
-### Create the .wsgi File
-
-```
-cd /var/www/catalog
-nano catalog.wsgi
-``` 
-
-Copy this code and save into the file:
-
-```
-#!/usr/bin/python
+Install git and clone project
+- sudo apt-get install git
+- cd /var/ww
+- sudo mkdir catalog
+- sudo chown -R grader:grader catalog
+- cd /catalog
+- git clone https://github.com/omar-jandali/Udacity-Item-Catalog.git catalog
+- sudo touch catalog.wsgi
+- sudo nano catalog.wsgi
+**
 import sys
 import logging
 logging.basicConfig(stream=sys.stderr)
-sys.path.insert(0,"/var/www/catalog/")
+sys.path.insert(0, "/var/www/catalog/")
 
-from FlaskApp import app as application
-application.secret_key = 'super_secret_key'
-```
+from catalog import app as application
+application.secret_key = 'secret_key'
+**
+Install all necessary packages
+- sudo apt-get install python-psycopg2
+- sudo apt-get install python-flask
+- sudo apt-get install python-sqlalchemy
+- sudo apt-get install python-pip
+- sudo pip install oauth2client
+- sudo pip install requests
+- sudo pip install htpplib2
 
-### Configure and Enable a New Virtual Host
+Change all the sqlalchemy database calls to postgresql databases
+- engine = create_engine('sqlite:///restaurant.db')
+- engine = create_engine('postgresql://catalog:udacity@localhost/catalog')
 
-`nano /etc/apache2/sites-available/catalog.conf`
-
-Copy this code and save into the file:
-
-```
+Create and enable Virtual Host
+- sudo touch /etc/apache2/sites-available/catalog.conf
+- sudo nano /etc/apache2/sites-available/catalog.conf
+**
 <VirtualHost *:80>
-    ServerName 52.33.95.129
-    ServerAdmin vk9141@hotmail.com
+    ServerName 34.205.91.116
+    ServerAdmin omarjandali@omnacore.com
     WSGIScriptAlias / /var/www/catalog/catalog.wsgi
-    <Directory /var/www/catalog/catalog/>
+    <Directory /var/www/catalog/>
         Order allow,deny
         Allow from all
     </Directory>
@@ -123,37 +106,40 @@ Copy this code and save into the file:
     LogLevel warn
     CustomLog ${APACHE_LOG_DIR}/access.log combined
 </VirtualHost>
-```
-Enable site:
-`a2ensite catalog`
+**
 
-### Restart Apache
+Install and configure PostgreSQL
+- sudo apt-get install postgresql
+- sudo su - postgres
+- psql
+- CREATE USER catalog WITH PASSWORD 'udacity';
+- ALTER USER catalog CREATEDB;
+- CREATE DATABASE catalog WITH OWNER catalog;
+- \c catalog;
+- REVOKE ALL ON SCHEMA public FROM public;
+- GRANT ALL ON SCHEMA public TO catalog;
+- \q
+- exit
+- python database_setup.py
+- python lotsofmenus.py
+- python __init__.py
 
-`service apache2 restart`
+Create new user
+- sudo adduser grader
+- sudo nano /etc/sudoers.d/grader
+* grader ALL=(ALL:ALL) ALL
+- sudo su grader
 
-### Add super user grader
-
-```
-useradd -m -s /bin/bash grader
-usermod -aG sudo grader
-```
-
-### Set-up SSH keys for user grader
-
-```
-mkdir /home/grader/.ssh
-chown grader:grader /home/grader/.ssh
-chmod 700 /home/grader/.ssh
-
-cp /root/.ssh/authorized_keys /home/grader/.ssh/
-chown grader:grader /home/grader/.ssh/authorized_keys
-chmod 644 /home/grader/.ssh/authorized_keys
-```
-
-Can now login as the grader user using the command: `ssh -i [privateKey] grader@34.205.131.70`
-
-### Disable root login
-
-`nano /etc/ssh/sshd_config`
-
-Change the following line `PermitRootLogin without-password` to `PermitRootLogin no`
+Key based anthentication
+- ssh-keygen [local machine]
+- cat .ssh/udacity_key.pub [local machine]
+- mkdir .ssh
+- cd .ssh
+- sudo touch authorized_keys
+- sudo nano authorized_keys
+* paste in the public key to the authorized keys file and save
+- sudo chmod 700 .ssh
+- sudo chmod 644 authorized_keys
+- cd ..
+- sudo chown -R grader:grader .ssh
+Login with the new user ssh grader@34.205.91.116 -i .ssh/authorized_keys -p 2200
