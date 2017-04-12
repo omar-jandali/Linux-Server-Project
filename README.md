@@ -1,3 +1,7 @@
+THe following is a Udacity project in which I had to setup and create a live
+server that hosts a project. The purpose of the project was to show that I 
+can create a secure and safe live server on the internet and figure out how to 
+host a github project that is cloned onto the server. 
 
 Linux server steps:
 
